@@ -2,7 +2,7 @@
 
 ## 实验1：利用Socket，编写一个聊天程序
 
-<img src="img/兔子政治笑话" alt="兔子政治笑话" style="zoom:55%;" />
+<img src="img/兔子政治笑话.jpg" alt="兔子政治笑话" style="zoom:55%;" />
 
 灵感来源于上述图片，，，兔子政治笑话
 
