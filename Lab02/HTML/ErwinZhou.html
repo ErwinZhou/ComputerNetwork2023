@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ErwinZhou</title>
+    <style>
+        body{
+            text-align: center;
+            /* beautiful font */
+            .hcqStyle1{color:hsl(184,80%,25%);text-shadow:0 0 1px currentColor,/*highlight*/-1px -1px 1px hsl(184,80%,50%),0 -1px 1px hsl(184,80%,55%),1px -1px 1px hsl(184,80%,50%),/*light shadow*/1px 1px 1px hsl(184,80%,10%),0 1px 1px hsl(184,80%,10%),-1px 1px 1px hsl(184,80%,10%),/*outline*/-2px -2px 1px hsl(184,80%,15%),-1px -2px 1px hsl(184,80%,15%),0 -2px 1px hsl(184,80%,15%),1px -2px 1px hsl(184,80%,15%),2px -2px 1px hsl(184,80%,15%),2px -1px 1px hsl(184,80%,15%),2px 0 1px hsl(184,80%,15%),2px 1px 1px hsl(184,80%,15%),-2px 0 1px hsl(184,80%,15%),-2px -1px 1px hsl(184,80%,15%),-2px 1px 1px hsl(184,80%,15%),/*dark shadow*/2px 2px 2px hsl(184,80%,5%),1px 2px 2px hsl(184,80%,5%),0 2px 2px hsl(184,80%,5%),-1px 2px 2px hsl(184,80%,5%),-2px 2px 2px hsl(184,80%,5%)}
+        }
+        .profile{
+            /* 虚化背景*/
+            background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.4)), url(src/Farewell.png);
+            background-attachment: fixed;
+            /* 设置其不重复 */
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size:cover;
+            /* 占满屏幕 */
+            height: 100vh;
+        }
+        audio{
+            /* 让音频播放器显示在右侧*/
+            float: right;
+        }
+        /* Farewell */
+        .text{
+            width: 300px;
+            height: 200px;
+            position: absolute;
+            left: 50%;
+            margin-left: -150px;
+            /* 使用WebKit引擎的线性渐变作为背景图像 */
+            background-image: -webkit-linear-gradient(left,blue,#66ffff 10%,#cc00ff 20%,#CC00CC 30%, #CCCCFF 40%, #00FFFF 50%,#CCCCFF 60%,#CC00CC 70%,#CC00FF 80%,#66FFFF 90%,blue 100%);
+            /* 将文本填充颜色设置为透明 */
+            -webkit-text-fill-color: transparent;
+            /* 使用WebKit引擎将背景剪裁到文本。*/
+            -webkit-background-clip: text;
+            -webkit-background-size: 200% 100%; 
+            /* 应用一个名为"masked-animation"的无限循环动画，每次循环持续4秒，速度线性变化 */
+            -webkit-animation: masked-animation 4s linear infinite;
+            font-size: 30px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="profile">
+    <h1 class="hcqStyle1">ErwinZhou</h1>
+    <img src="src/ErwinZhou.jpg" title="Me" width="300" />
+    <div>
+    <p><strong>Major: Information Security</strong></p> 
+    <p><strong>Student ID: 2111408</strong></p>
+    <p><strong>Name: 周钰宸 Zhou Yuchen</strong></p>
+    <p><strong>Wechat: fighttillthend</strong><p>
+    <p><strong>Email: batman6667@proton.me</strong></p>
+    
+    <p><strong><a href="https://twitter.com/ErwinZhou_">Twitter: @ErwinZhou_</a></strong></p>
+    <p><strong><a href="https://github.com/ErwinZhou">GitHub: ErwinZhou</a></strong></p>
+    </div>
+    <h2 class="text">Farewell, Eren Jeager</h2>
+    <audio controls>
+        <source src="src/Music.mp3" type="audio/mpeg">
+  
+    </audio>
+</div>
+    
+    
+</body>
+</html>
