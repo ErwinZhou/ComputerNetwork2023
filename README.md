@@ -1,6 +1,24 @@
 # ComputerNetwork 2023
 
-## NKU 计算机与网络空间安全学院大三课程
+## NKU 
+
+### College of Computer and Cyber Science Junior
+
+#### Associate Professor: Wu Ying
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 在苦逼的内裤大，大三课程压力真的大......
 
