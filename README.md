@@ -4,7 +4,7 @@
 
 ### College of Computer and Cyber Science Junior
 
-#### Associate Professor: Wu Ying
+#### Associate Professor: Ying Wu
 
 
 
