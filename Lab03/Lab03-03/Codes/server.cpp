@@ -267,61 +267,6 @@ DWORD WINAPI send_thread_main(LPVOID lpParamter) {
 	* Main thread is used to receive data from sender(client)
 	*/
 
-	////Send ACK
-				//Header ack_header(0, expected_sequence_num, ACK, 0, 0, sizeof(Header));
-
-				////at the same time, send_buff has been changed
-				////And also the next time, a corruptied or unexpected pkg received, we can just send the send_buff
-				////expected_sequence_num will update later, so the ack in send_buff is still expected_sequence_num - 1
-				//memcpy(send_buff, (char*)&ack_header, sizeof(ack_header));
-
-				////Update expected_sequence_num
-				//expected_sequence_num++;
-				////show receiver sliding window
-				//cout << "receiver buffer:{ [" << expected_sequence_num << "] }" << endl;
-				////so checksum again
-				//u_short cks = checksum(send_buff, sizeof(ack_header));
-				//((Header*)send_buff)->checksum = cks;
-
-				///*
-				//* 测试丢包
-				//*/
-
-				//// 生成随机数
-				//int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
-
-				//if (randomNumber <= Packet_loss_range) {
-				//	cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
-				//}
-				//else {
-				//	int times = 5;
-				//SendACK3:
-				//	log = sendto(serverSocket, send_buff, sizeof(ack_header), 0, (sockaddr*)&clientAddr, sizeof(sockaddr_in));
-				//	//这里也可能出现socketerror的错误
-				//	if (log == SOCKET_ERROR) {
-				//		cout << "Oops!Failed to send ACK to client on datagram." << endl;
-				//		cout << GetLastErrorDetails() << endl;
-				//		cout << "Please try again later." << endl;
-				//		//尽可能发给
-				//		if (!times) {
-				//			cout << "Failed to send ACK for pkg from client" << endl;
-				//			cout << "------------Dismissed connection-----------" << endl;
-				//			//当然如果多次传不过去，客户端会多次超时重传，最后这边发不过去，对方还一直发，会造成死锁
-				//			//因此提前结束
-				//			mode = 0;
-				//			ioctlsocket(serverSocket, FIONBIO, &mode);
-				//			return;
-				//		}
-				//		times--;
-				//		goto SendACK3;
-				//		//这里其实如果一直发不过去也无所谓，因为客户端由于没有接收到ACK报文
-				//		// 会继续重传，直到超过最大重传次数。
-				//	}
-				//	cout << "Successfully sent ACK pkg:" << endl;
-				//	cout << "seq: " << ack_header.get_seq() << " , ack: " << ack_header.get_ack() << ", flag: " << ack_header.get_flag() << ", checksum: " << ack_header.get_checksum() << endl;
-				//	cout << "header length:" << ack_header.get_header_length() << ", data length:" << ack_header.get_data_length() << endl;
-				//}
-
 	int log;
 	send_buff = new char[sizeof(Header)];
 	while (true) {
@@ -395,89 +340,6 @@ DWORD WINAPI send_thread_main(LPVOID lpParamter) {
 					log_queue.push_back("header length:" + to_string(ack_header.get_header_length()) + ", data length:" + to_string(ack_header.get_data_length()) + string("\n"));
 				}
 			}
-
-		
-
-
-
-		//if (ack_seq_num != (u_short)-1) {
-		//	/*
-		//	* If ack_seq_num!=-1,
-		//	* It must has been changed by Main Thread
-		//	*/
-		//	u_short temp_acked_seq_num = ack_seq_num;
-		//	{
-		//		//Reset ack_seq_num to -1
-		//		//So only changes to be non-1 will appear in Main Thread
-		//		lock_guard<mutex> ack_lock(ack_seq_num_mutex);
-		//		ack_seq_num = (u_short)-1;
-		//	}
-		//	Header ack_header(0, temp_acked_seq_num, ACK, 0, 0, sizeof(Header));
-		//	memcpy(send_buff, (char*)&ack_header, sizeof(ack_header));
-		//	//checksum
-		//	u_short cks = checksum(send_buff, sizeof(ack_header));
-		//	((Header*)send_buff)->checksum = cks;
-		//	/*
-		//	* 测试丢包
-		//	*/
-
-		//	// 生成随机数
-		//	int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
-
-		//	if (randomNumber <= Packet_loss_range) {
-		//		lock_guard<mutex> log_lock(log_queue_mutex);
-		//		log_queue.push_back("------------DROP PACKAGE ON PURPOSE!-----------" + string("\n"));
-		//	}
-		//	else {
-
-		//		int times = 5;
-		//		SendACK:
-		//			log = sendto(serverSocket, send_buff, sizeof(ack_header), 0, (sockaddr*)&clientAddr, sizeof(sockaddr_in));
-		//			//这里也可能出现socketerror的错误
-		//			if (log == SOCKET_ERROR) {
-		//				{
-		//					lock_guard<mutex> log_lock(log_queue_mutex);
-		//					log_queue.push_back("Oops!Failed to send ACK to client on datagram." + string("\n"));
-		//					log_queue.push_back(GetLastErrorDetails() + string("\n"));
-		//					log_queue.push_back("Please try again later." + string("\n"));
-		//				}
-		//				//尽可能发给
-		//				if (!times) {
-		//					lock_guard<mutex> log_lock(log_queue_mutex);
-		//					log_queue.push_back("Failed to send ACK for pkg from client." + string("\n"));
-		//					log_queue.push_back("------------Dismissed connection-----------" + string("\n"));
-		//					//当然如果多次传不过去，客户端会多次超时重传，最后这边发不过去，对方还一直发，会造成死锁
-		//					//因此提前结束程序
-		//					closesocket(serverSocket);
-		//					WSACleanup();
-		//					system("pause");
-		//					exit(0);
-		//				}
-		//				times--;
-		//				goto SendACK;
-		//			}
-		//			{
-		//				lock_guard<mutex> log_lock(log_queue_mutex);
-		//				log_queue.push_back("-----Sent ACK-----" + string("\n"));	
-		//				log_queue.push_back("Successfully sent ACK pkg:" + string("\n"));
-		//				log_queue.push_back("seq: " + to_string(ack_header.get_seq()) + " , ack: " + to_string(ack_header.get_ack()) + ", flag: " + to_string(ack_header.get_flag()) + ", checksum: " + to_string(ack_header.get_checksum()) + string("\n"));
-		//				log_queue.push_back("header length:" + to_string(ack_header.get_header_length()) + ", data length:" + to_string(ack_header.get_data_length()) + string("\n"));
-		//			}
-		//		}
-
-		//	//{
-		//	//	//Reset ack_seq_num to -1
-		//	//	//So only changes to be non-1 will appear in Main Thread
-		//	//	lock_guard<mutex> ack_lock(ack_seq_num_mutex);
-		//	//	ack_seq_num = (u_short)-1;
-		//	//}
-		//	
-		//		
-
-
-		//}
-
-
 	}
 	return 0;
 }
@@ -489,12 +351,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 	memset(recv_buff, 0, MSS + sizeof(Header));
 	memset(send_buff, 0, sizeof(Header));
 
-
-	////Initialize
-	//((Header*)send_buff)->flag = ACK;
-	//((Header*)send_buff)->ack = expected_sequence_num - 1;//expected_sequence_num is 1 at first, ack on 0
-	//((Header*)send_buff)->header_length = sizeof(Header);
-	//((Header*)send_buff)->checksum = checksum(send_buff, sizeof(Header));
 
 
 	int addr_Client_length = sizeof(sockaddr_in);
@@ -533,7 +389,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 		// MSS + Header this time
 		// recv_buff:  MSS + header
 		while ((result = recvfrom(serverSocket, recv_buff, MSS + sizeof(Header), 0, (sockaddr*)&clientAddr, &addr_Client_length)) <= 0) {
-			//cout<<"erver的rdt_rcv线程我还活着！"<<endl;
 			if (clock() - start > PATIENCE) {// finished sent file, but not received furthur request
 				{
 					lock_guard<mutex> log_lock(log_queue_mutex);
@@ -629,14 +484,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					}
 
 					{
-						//lock_guard<mutex> ack_lock(ack_seq_num_mutex);
-						////If the last ack_seq_num has not been sent, wait for it to be sent
-						//while (ack_seq_num != u_short(-1)) {
-						//	cout << "我在这里啊" << endl;
-						//	continue;
-						//}
-						////Communicate with send_thread_main, teling it to send ack on this seq
-						//ack_seq_num = recv_header.get_seq();
 						lock_guard<mutex> ack_lock(ack_deque_mutex);
 						ack_deque.push_back(recv_header.get_seq());
 					}
@@ -658,7 +505,7 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					//That is a new datagram which has not been buffered before
 					//Put it in the buffer
 					Datagram* datagram = new Datagram(recv_header, recv_buff + sizeof(recv_header));
-					receive_buffer.buff_datagram(datagram);
+					receive_buffer.buffer_datagram(datagram);
 					lock_guard<mutex> log_lock(log_queue_mutex);
 					log_queue.push_back("Buff new datagram in receive_buffer." + string("\n"));
 				}
@@ -677,10 +524,8 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 						&&
 						receive_buffer.get_slide_window()[0]->get_header().get_seq() == receive_buffer.get_receive_base()//When the first datagram in the buffer has the same sequence number as the base of the receive window
 						) {
-						////Back Edge Slide
-						//Datagram* datagram = receive_buffer.back_edge_slide();
-						////Front Edge Slide
-						//receive_buffer.front_edge_slide();
+						//Back Edge Slide
+						//Front Edge Slide
 						Datagram* datagram = receive_buffer.window_edge_slide();
 						//从data_buff + *curr_pos位置开始继续写data_buff
 						memcpy(data_buff + *curr_pos, datagram->get_data(), datagram->get_header().get_data_length());
@@ -709,6 +554,8 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 							//Because waving hands follow stop-and-wait protocol, which is a single thread protocol
 							WaitForSingleObject(send_handle, INFINITE);
 							WaitForSingleObject(log_handle, INFINITE);
+							CloseHandle(send_handle);
+							CloseHandle(log_handle);
 							start = clock();
 							//getout the while(true) to output file(Keep-Alive), just return 
 							mode = 0;//阻塞模式
@@ -741,10 +588,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					for (u_short i = receive_buffer.get_receive_base(); i <= receive_buffer.get_receive_end(); i++) {
 						if (receive_buffer.get_slide_window().empty() == true)
 							goto ShowLabel;
-					/*	if (receive_buffer.get_slide_window()[index]->get_header().get_seq() == i) {
-							log_queue.push_back("[" + to_string(i) + "*" + "]" + " ");
-							index++;
-						}*/
 						else {
 						ShowLabel:
 							log_queue.push_back("[" + to_string(i) + +"]" + " ");
@@ -755,43 +598,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 				}
 
 
-				//Send ACK on the received datagram
-
-
-
-
-
-
-				///*
-				//* If the program reaches here, it has to be a notcorruptiedly received and acceptable datagram
-				//* But it could arrive only in disorder
-				//* So we need to check if the receive buffer is empty
-				//* Rdt_rcv finished only when the receive buffer is empty and LAS is received and accepted(in range)
-				//*/
-				//if (recv_header.get_flag() & LAS
-				//	&&
-				//	receive_buffer.get_slide_window().empty() == true
-				//	)
-				//{
-				//	//Last datagram received
-				//	{
-				//		lock_guard<mutex> log_lock(log_queue_mutex);
-				//		log_queue.push_back("Last datagram received." + string("\n"));
-				//		log_queue.push_back("Finish receiving file." + string("\n"));
-				//	}
-	
-				//	//Wait for send_thread to finish
-				//	receive_over = true;
-				//	//Following steps are waving hands, while doing so, there is no need to implete mutil-thread
-				//	//Because waving hands follow stop-and-wait protocol, which is a single thread protocol
-				//	WaitForSingleObject(send_handle, INFINITE);
-				//	WaitForSingleObject(log_handle, INFINITE);
-				//	start = clock();
-				//	//Break the while(true) to output file(Keep-Alive)
-				//	break;
-				//}
-
-
 			}
 			else {
 				/*
@@ -800,14 +606,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 				*/
 
 				{
-					//lock_guard<mutex> ack_lock(ack_seq_num_mutex);
-					////If the last ack_seq_num has not been sent, wait for it to be sent
-					//while (ack_seq_num != u_short(-1)) {
-					//	cout << "我在这里啊" << endl;
-					//	continue;
-					//}
-					////Communicate with send_thread_main, teling it to send ack on this seq
-					//ack_seq_num = recv_header.get_seq();
 					lock_guard<mutex> ack_lock(ack_deque_mutex);
 					ack_deque.push_back(recv_header.get_seq());
 				}

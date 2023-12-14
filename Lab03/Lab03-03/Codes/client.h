@@ -273,8 +273,6 @@ Distinguish in the case(base=next_seq_num) :
 */
 bool send_over = false;
 
-//Timers to be used for every datagram in the slide window in SR
-Timer* timers;
 
 u_short checksum(char* data, int length);
 int shake_hand();

@@ -210,36 +210,6 @@ DWORD WINAPI timeout_resend_thread_main(LPVOID lpParamter) {
 			}
 		}
 
-		
-
-		//for (auto dg : send_buffer.get_slide_window()) {
-		//	if (dg->get_dg_timer().is_timeout() == true) {
-		//		//reset timer
-		//		dg->get_dg_timer().start();
-		//		//send datagram again
-		//		int log = sendto(
-		//			clientSocket,
-		//			(char*)dg,
-		//			dg->get_header().get_data_length() + dg->get_header().get_header_length(),
-		//			//dg->header.get_data_length() + dg->header.get_header_length(),
-		//			0,
-		//			(sockaddr*)&serverAddr,
-		//			sizeof(sockaddr_in)
-		//		);
-
-		//		if (log == SOCKET_ERROR) {
-		//			//重复五次，然后发送rst，结束
-		//		}
-
-		//		lock_guard<mutex> log_queue_lock(log_queue_mutex);
-		//		log_queue.push_back("timeout, resent datagram with seq:" + to_string(dg->get_header().get_seq()) + " to server." + string("\n"));
-		//	}
-		//}
-
-
-
-
-
 
 	}
 	
@@ -262,7 +232,6 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 		/*
 		* Latency Test:Relatively, shorten every timeout in the send_buffer
 		*/
-		//cout << "Client的recv线程我还活着！" << endl;
 		{
 			lock_guard<mutex> send_buffer_lock(send_buffer_mutex);
 			// 生成随机数
@@ -288,7 +257,7 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 			return 0;
 		}
 
-		//Timeout resent protocol
+		
 		while (recvfrom(
 			clientSocket,
 			recv_buff,
@@ -363,7 +332,7 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 					lock_guard<mutex> send_buffer_lock(send_buffer_mutex);
 					int acked_num = recv_header.get_ack() - send_buffer.get_send_base();
 					if (acked_num < 0 || acked_num >= send_buffer.get_next_seq_num()) {
-						//ack on previous pkg
+						//ack on previous OR later pkg
 						//Ignore
 						{
 							lock_guard<mutex> log_queue_lock(log_queue_mutex);
@@ -395,25 +364,7 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 				}
 		
 
-			//int acked_num = recv_header.get_ack() + 1 - send_buffer.get_send_base();
-			//if (acked_num <= 0) {
-			//	////ack on previous pkg
-			//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
-			//	log_queue.push_back("Server has acknowledged on packages:None" + string("\n"));
-			//}
-			//else {
-
-			//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
-			//	log_queue.push_back("Server has acknowledged on packages:");
-			//	for (int i = 0; i < acked_num; i++) {
-			//		if (i == acked_num - 1)
-			//			log_queue.push_back(to_string(send_buffer.get_send_base()) + "\n");
-			//		else
-			//			log_queue.push_back(to_string(send_buffer.get_send_base()) + " ");
-			//		send_buffer.back_edge_slide();
-			//	}
-
-			//}
+		
 
 
 			{
@@ -454,13 +405,6 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 			cks != 0 //ACK pkg probably corruptied during transmisssion
 			)
 			continue;//continue to send pkg to server
-
-		//if (send_buffer.get_send_base() == send_buffer.get_next_seq_num()) {
-		//	client_timer.stop();
-		//}
-		//else {
-		//	client_timer.start();
-		//}
 	}
 }
 void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
@@ -487,9 +431,7 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 
 
 
-	////Only start timer for the oldest pkg from the slide window
-	//if (send_buffer.get_send_base() == send_buffer.get_next_seq_num())
-	//	client_timer.start();
+
 	
 	/*
 	* Different case from GBN, SR client(sender) has to start timer for every datagram
@@ -882,7 +824,7 @@ int main() {
 			//ReInititalize log_queue
 			log_queue.clear();
 			//Initialize timers
-			timers = new Timer[send_buffer_size];
+			//timers = new Timer[send_buffer_size];
 
 			string input_path;
 			while (true) {

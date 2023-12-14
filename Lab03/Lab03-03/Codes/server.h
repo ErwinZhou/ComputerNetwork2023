@@ -87,7 +87,7 @@ private:
 	Header header;
 	char data[MSS];
 	//For SR, if the datagram is received(in the receive buffers), is_received=true
-	bool is_received;
+	//bool is_received;
 public:
 	Datagram() {};
 	Datagram(Header header, char* data) :header(header) {
@@ -99,12 +99,12 @@ public:
 	char* get_data() {
 		return data;
 	}
-	bool get_is_received() {
-		return is_received;
-	}
-	void set_is_received(bool is_received) {
-		this->is_received = is_received;
-	}
+	//bool get_is_received() {
+	//	return is_received;
+	//}
+	//void set_is_received(bool is_received) {
+	//	this->is_received = is_received;
+	//}
 
 };
 #pragma pack(pop)
@@ -139,14 +139,14 @@ public:
 	vector<Datagram*>& get_slide_window() {
 		return slide_window;
 	}
-	void front_edge_slide() {
-		/*
-		* Actually, it's the accpectable range getting bigger
-		*/
-		buffer_lock.lock();
-		receive_end++;
-		buffer_lock.unlock();
-	}
+	//void front_edge_slide() {
+	//	/*
+	//	* Actually, it's the accpectable range getting bigger
+	//	*/
+	//	buffer_lock.lock();
+	//	receive_end++;
+	//	buffer_lock.unlock();
+	//}
 	Datagram* window_edge_slide() {
 		buffer_lock.lock();
 		receive_base++;
@@ -158,15 +158,15 @@ public:
 		// Return the first datagram in slide_window to give it to application layer
 		return datagram;
 	}
-	Datagram* back_edge_slide() {
-		buffer_lock.lock();
-		receive_base++;
-		//return the first datagram in slide_window to give it to application layer
-		Datagram* datagram = slide_window[0];
-		slide_window.erase(slide_window.begin());
-		buffer_lock.unlock();
-		return datagram;
-	}
+	//Datagram* back_edge_slide() {
+	//	buffer_lock.lock();
+	//	receive_base++;
+	//	//return the first datagram in slide_window to give it to application layer
+	//	Datagram* datagram = slide_window[0];
+	//	slide_window.erase(slide_window.begin());
+	//	buffer_lock.unlock();
+	//	return datagram;
+	//}
 	void set_receive_end(u_short receive_end) {
 		buffer_lock.lock();
 		this->receive_end = receive_end;
@@ -175,7 +175,7 @@ public:
 	u_short get_receive_end() {
 		return receive_end;
 	}
-	void buff_datagram(Datagram* datagram) {
+	void buffer_datagram(Datagram* datagram) {
 		buffer_lock.lock();
 		slide_window.push_back(datagram);
 
@@ -235,8 +235,8 @@ bool receive_over = false;
 
 //Sequence number of ack needed to be sent, using in multi-thread communication
 u_short ack_seq_num = -1;
-//Mutex for ack_seq_num
-mutex ack_seq_num_mutex;
+////Mutex for ack_seq_num
+//mutex ack_seq_num_mutex;
 
 
 
