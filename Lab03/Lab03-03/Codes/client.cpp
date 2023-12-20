@@ -48,7 +48,7 @@ int shake_hand() {
 	// 生成随机数
 	int randomNumber = rand() % 100; //确保数字在0范围内
 
-	if (randomNumber <= Packet_loss_range) {
+	if (randomNumber < Packet_loss_range) {
 		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 	}
 	else {
@@ -163,12 +163,10 @@ int shake_hand() {
 
 DWORD WINAPI log_thread_main(LPVOID lpParameter) {
 	while (true) {
-		//cout<<"Client的log线程我还活着！" << endl;
 		if (send_over == true)
 			return 0;
 		unique_lock<mutex> log_queue_lock(log_queue_mutex);
 		if (!log_queue.empty()) {
-			//cout<<"Client的log线程我还活着,并且在emptyh中！" << endl;
 			cout << log_queue.front();
 			log_queue.pop_front();
 		}
@@ -180,6 +178,9 @@ DWORD WINAPI timeout_resend_thread_main(LPVOID lpParamter) {
 	while (true) {
 		if (send_over == true)
 			return 0;
+
+		//Release the lock for 30ms in case of dead lock
+		Sleep(30);
 		/*
 		* SR:Different from GBN, timeout resent protocol happens for every possible pkg in the slide window
 		*/
@@ -187,6 +188,19 @@ DWORD WINAPI timeout_resend_thread_main(LPVOID lpParamter) {
 			lock_guard<mutex> send_buffer_lock(send_buffer_mutex);
 			for (int i = 0; i < send_buffer.get_slide_window().size(); i++) {
 				if (send_buffer.get_slide_window()[i]->get_dg_timer().is_timeout() == true) {
+
+					/*
+					* Latency test for Packet(Absolute)
+					*/
+					if (Latency_mill_seconds) {
+						//{
+						//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
+						//	log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+						//}
+						Sleep(Latency_mill_seconds);
+					}
+
+
 					int log = sendto(
 						clientSocket,
 						(char*)send_buffer.get_slide_window()[i],
@@ -205,7 +219,7 @@ DWORD WINAPI timeout_resend_thread_main(LPVOID lpParamter) {
 						lock_guard<mutex> log_queue_lock(log_queue_mutex);
 						log_queue.push_back("Timeout, resent datagram with seq:" + to_string(send_buffer.get_slide_window()[i]->get_header().get_seq()) + " to server." + string("\n"));
 					}
-					
+					break;
 				}
 			}
 		}
@@ -237,10 +251,10 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 			// 生成随机数
 			int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
 
-			if (randomNumber <= Packet_loss_range) {
+			if (randomNumber < Packet_loss_range) {
 
 				lock_guard<mutex> log_queue_lock(log_queue_mutex);
-				log_queue.push_back("------------DELAY TIME!-----------" + string("\n"));
+				log_queue.push_back("------------DELAY TIME RELATIVE!-----------" + string("\n"));
 				for (int i = 0; i < send_buffer.get_slide_window().size(); i++)
 					send_buffer.get_slide_window()[i]->get_dg_timer().set_timeout(Latency_param * send_buffer.get_slide_window()[i]->get_dg_timer().get_timeout());
 			}
@@ -273,28 +287,6 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 				delete[]recv_buff;
 				return 0;
 			}
-			//if (client_timer.is_timeout() == true) {
-			//	//Timeout
-			//	//Resend all the pkg in the slide window
-			//	for (auto dg : send_buffer.get_slide_window()) {
-
-			//		int log = sendto(
-			//			clientSocket,
-			//			(char*)dg,
-			//			dg->get_header().get_data_length() + dg->get_header().get_header_length(),
-			//			//dg->header.get_data_length() + dg->header.get_header_length(),
-			//			0,
-			//			(sockaddr*)&serverAddr,
-			//			sizeof(sockaddr_in)
-			//		);
-			//		if (log == SOCKET_ERROR) {
-			//			//重复五次，然后发送RST，结束
-			//		}
-			//	}
-			//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
-			//	log_queue.push_back("Timeout, resent datagram to server." + string("\n"));
-			//	client_timer.start();
-			//}
 
 		}
 
@@ -419,7 +411,16 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 		continue;
 	}
 	
-
+	/*
+	* Latency test for Packet(Absolute)
+	*/
+	if (Latency_mill_seconds) {
+		//{
+		//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
+		//	log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+		//}
+		Sleep(Latency_mill_seconds);
+	}
 
 	Header send_header(send_buffer.get_next_seq_num(), 0, flag, 0, pkg_length, sizeof(Header));
 	//Inititalize datagram with header and data
@@ -452,7 +453,7 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 	// 生成随机数
 	int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
 
-	if (randomNumber <= Packet_loss_range) {
+	if (randomNumber < Packet_loss_range) {
 
 		lock_guard<mutex> log_queue_lock(log_queue_mutex);
 		log_queue.push_back("------------DROP PACKAGE ON PURPOSE!-----------" + string("\n"));
@@ -606,7 +607,7 @@ void wave_hand() {
 	// 生成随机数
 	int randomNumber = rand() % 100; //确保数字在0范围内
 
-	if (randomNumber <= Packet_loss_range) {
+	if (randomNumber < Packet_loss_range) {
 		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 	}
 	else {
@@ -777,19 +778,35 @@ int main() {
 
 			cout << "-----------Packet Loss-----------" << endl;
 			cout << "Please input the loss of packet in transfer:" << endl;
-			cout << "Less than 0:No loss         Greater than 99:All loss" << endl;
+			cout << "Less than 1:No loss         Greater than 99:All loss" << endl;
 			cout << "Packet loss rate:";
 			cin >> Packet_loss_range;
 
-
+			
 			while (true) {
-				cout << "-----------Latency Test-----------" << endl;
+				cout << "-----------Latency Test Relative-----------" << endl;
 				cout << "Please input the latency of time in transfer:" << endl;
 				cout << "Slight Greater than 0:Severe Latency         1:No Latency" << endl;
 				cout << "Latency parameter(0-1]:";
 				cin >> Latency_param;
 				if (Latency_param <= 0 || Latency_param > 1) {
 					cout << "Latency paramter out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
+
+			//Input Latency in mill seconds
+			while (true) {
+				cout << "-----------Latency Test Absolute-----------" << endl;
+				cout << "Please input the latency of time in transfer(ms):" << endl;
+				cout << "0:No Latency       3000:3000ms(3s)" << endl;
+				cout << "Latency mill seconds[0-3000]:";
+				cin >> Latency_mill_seconds;
+				if (Latency_mill_seconds < 0 || Latency_mill_seconds > 3000) {
+					cout << "Latency mill seconds out of range, please input again." << endl;
 					continue;
 				}
 				else {

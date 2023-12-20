@@ -71,7 +71,7 @@ int shake_hand() {
 			// 生成随机数
 			int randomNumber = rand() % 100; //确保数字在0-1范围内
 
-			if (randomNumber <= Packet_loss_range) {
+			if (randomNumber < Packet_loss_range) {
 				cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 			}
 			else {
@@ -403,6 +403,18 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 				}
 				else {
+
+					/*
+					* Latency test for Packet(Absolute)
+					*/
+					if (Latency_mill_seconds) {
+						/*{
+							lock_guard<mutex> log_queue_lock(log_queue_mutex);
+							log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+						}*/
+						Sleep(Latency_mill_seconds);
+					}
+
 					int times = 5;
 				SendACK3:
 					log = sendto(serverSocket, send_buff, sizeof(ack_header), 0, (sockaddr*)&clientAddr, sizeof(sockaddr_in));
@@ -430,32 +442,7 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					cout << "seq: " << ack_header.get_seq() << " , ack: " << ack_header.get_ack() << ", flag: " << ack_header.get_flag() << ", checksum: " << ack_header.get_checksum() << endl;
 					cout << "header length:" << ack_header.get_header_length() << ", data length:" << ack_header.get_data_length() << endl;
 				}
-			//	int times = 5;
-			//SendACK3:
-			//	log = sendto(serverSocket, send_buff, sizeof(ack_header), 0, (sockaddr*)&clientAddr, sizeof(sockaddr_in));
-			//	//这里也可能出现socketerror的错误
-			//	if (log == SOCKET_ERROR) {
-			//		cout << "Oops!Failed to send ACK to client on datagram." << endl;
-			//		cout << GetLastErrorDetails() << endl;
-			//		cout << "Please try again later." << endl;
-			//		//尽可能发给
-			//		if (!times) {
-			//			cout << "Failed to send ACK for pkg from client" << endl;
-			//			cout << "------------Dismissed connection-----------" << endl;
-			//			//当然如果多次传不过去，客户端会多次超时重传，最后这边发不过去，对方还一直发，会造成死锁
-			//			//因此提前结束
-			//			mode = 0;
-			//			ioctlsocket(serverSocket, FIONBIO, &mode);
-			//			return;
-			//		}
-			//		times--;
-			//		goto SendACK3;
-			//		//这里其实如果一直发不过去也无所谓，因为客户端由于没有接收到ACK报文
-			//		// 会继续重传，直到超过最大重传次数。
-			//	}
-			//	cout << "Successfully sent ACK pkg:" << endl;
-			//	cout << "seq: " << ack_header.get_seq() << " , ack: " << ack_header.get_ack() << ", flag: " << ack_header.get_flag() << ", checksum: " << ack_header.get_checksum() << endl;
-			//	cout << "header length:" << ack_header.get_header_length() << ", data length:" << ack_header.get_data_length() << endl;
+			
 
 				//从recv_buff的header内容之后，即data内容开始，读取data内容
 				//从data_buff + *curr_pos位置开始继续写data_buff
@@ -568,9 +555,25 @@ int main() {
 
 			cout << "-----------Packet Loss-----------" << endl;
 			cout << "Please input the loss of packet in transfer:" << endl;
-			cout << "Less than 0:No loss         Greater than 99:All loss" << endl;
+			cout << "Less than 1:No loss         Greater than 99:All loss" << endl;
 			cout << "Packet loss rate:";
 			cin >> Packet_loss_range;
+
+			//Input Latency for ack
+			while (true) {
+				cout << "-----------Latency Test-----------" << endl;
+				cout << "Please input the latency of time in transfer(ms):" << endl;
+				cout << "0:No Latency       3000:3000ms(3s)" << endl;
+				cout << "Latency mill seconds[0-3000]:";
+				cin >> Latency_mill_seconds;
+				if (Latency_mill_seconds < 0 || Latency_mill_seconds > 3000) {
+					cout << "Latency mill seconds out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
 
 			rdt_rcv(file_data_buffer, &file_length, waved);//curr_pos = file_length开始的位置
 			if (waved == true) {

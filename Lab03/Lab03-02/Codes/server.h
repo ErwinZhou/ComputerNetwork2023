@@ -90,5 +90,7 @@ u_short checksum(char* data, int length);
 int shake_hand();
 void rdt_rcv(char* data_buff, int* curr_pos, bool& waved);
 
-//Packet loss test(1-100)
+//Packet loss test(1-100) On ACK
 int Packet_loss_range;
+//Latency test(Absolute)[0-3000:ms] On ACK
+int Latency_mill_seconds;

@@ -48,7 +48,7 @@ int shake_hand() {
 	// 生成随机数
 	int randomNumber = rand() % 100; //确保数字在0范围内
 
-	if (randomNumber <= Packet_loss_range) {
+	if (randomNumber < Packet_loss_range) {
 		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 	}
 	else {
@@ -192,7 +192,13 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 		/*
 		* Latency Test:Relatively
 		*/
-		client_timer.set_timeout(Latency_param * client_timer.get_timeout());
+		int random_number = rand() % 100;
+		if (random_number < Packet_loss_range) {
+			lock_guard<mutex> log_queue_lock(log_queue_mutex);
+			log_queue.push_back("------------DELAY TIME RELATIVE!-----------" + string("\n"));
+			client_timer.set_timeout(Latency_param * client_timer.get_timeout());
+		}
+		
 
 
 		if (send_over == true) {
@@ -236,10 +242,6 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 					if (log == SOCKET_ERROR) {
 						//重复五次，然后发送RST，结束
 					}
-					////lock printing, in case other thread interrupts it
-					//log_lock.lock();
-					//cout << "Timeout, resent datagram to server." << endl;
-					//log_lock.unlock();
 				}
 				lock_guard<mutex> log_queue_lock(log_queue_mutex);
 				log_queue.push_back("Timeout, resent datagram to server." + string("\n"));
@@ -251,13 +253,7 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 			//Receive ACK from server
 			memcpy(&recv_header, recv_buff, sizeof(recv_header));//only header is useful
 
-			//log_lock.lock();
-			////logs printing
-			//cout << "Successfully received datagram---" << recv_header.get_data_length() + recv_header.get_header_length() << "Bytes in length." << endl;
-			//cout << "Header---" << endl;
-			//cout << "seq: " << recv_header.get_seq() << " , ack: " << recv_header.get_ack() << ", flag: " << recv_header.get_flag() << ", checksum: " << recv_header.get_checksum() << endl;
-			//cout << "header length:" << recv_header.get_header_length() << ", data length:" << recv_header.get_data_length() << endl;
-			//log_lock.unlock();
+
 
 			{
 				lock_guard<mutex> log_queue_lock(log_queue_mutex);
@@ -285,16 +281,11 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 				int acked_num = recv_header.get_ack() + 1 - send_buffer.get_send_base();
 				if (acked_num <= 0) {
 					////ack on previous pkg
-					//log_lock.lock();
-					//cout<<"Server has acknowledged on packages:None"<<endl;
-					//log_lock.unlock();
 					lock_guard<mutex> log_queue_lock(log_queue_mutex);
 					log_queue.push_back("Server has acknowledged on packages:None" + string("\n"));
 				}
 				else {
-					/*log_lock.lock();
-					cout << "Server has acknowledged on packages:";
-					log_lock.unlock();*/
+
 					lock_guard<mutex> log_queue_lock(log_queue_mutex);
 					log_queue.push_back("Server has acknowledged on packages:");
 					for (int i = 0; i < acked_num; i++) {
@@ -307,23 +298,10 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 
 				}
 				
-				/*for (int i = 0; i < acked_num; i++) {
-					log_lock.lock();
-					if (i == acked_num - 1)
-						cout << send_buffer.get_send_base() << endl;
-					else
-						cout << send_buffer.get_send_base() << " ";
-					log_lock.unlock();
-					send_buffer.back_edge_slide();
-				}*/
-				//send_buffer.show();
-				// 
+
 				{
 					lock_guard<mutex> lock(log_queue_mutex);
 					log_queue.push_back("send_buffer:{ ");
-					//for (auto it = send_buffer.get_slide_window().begin(); it != send_buffer.get_slide_window().end(); it++) {
-					//	log_queue.push_back("[" + to_string((*it)->header.get_seq()) + "]" + " ");
-					//}
 
 
 					for (int i = 0; i < send_buffer.get_slide_window().size(); i++) {
@@ -342,9 +320,6 @@ DWORD WINAPI recv_thread_main(LPVOID lpParameter) {
 				lock_guard<mutex> log_queue_lock(log_queue_mutex);
 				log_queue.push_back("Server unexpected closed:Error in connection." + string("\n"));
 
-				//log_lock.lock();
-				//cout << "Server unexpected closed:Error in connection." << endl;
-				//log_lock.unlock();
 				delete[] file_data_buffer;
 				delete[] send_buff;
 				delete[] recv_buff;
@@ -393,6 +368,21 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 
 	//Slide window front edge slides
 	send_buffer.front_edge_slide(datagram);
+
+
+	/*
+	* Latency test for Packet(Absolute)
+	*/
+	if (Latency_mill_seconds) {
+		//{
+		//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
+		//	log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+		//}
+		Sleep(Latency_mill_seconds);
+	}
+
+
+
 	/*
 	* 测试丢包
 	*/
@@ -401,44 +391,12 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 	// 生成随机数
 	int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
 
-	if (randomNumber <= Packet_loss_range) {
-		/*log_lock.lock();
-		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
-		log_lock.unlock();*/
+	if (randomNumber < Packet_loss_range) {
+
 		lock_guard<mutex> log_queue_lock(log_queue_mutex);
 		log_queue.push_back("------------DROP PACKAGE ON PURPOSE!-----------"+ string("\n"));
 	}
 	else {
-		//log_lock.lock();
-		//cout << "-----New Datagram-----" << endl;
-		//log_lock.unlock();
-		//log = sendto(
-		//	clientSocket,
-		//	(char*)datagram,
-		//	pkg_length + sizeof(send_header),//total length
-		//	0,//no flags
-		//	(sockaddr*)&serverAddr,
-		//	sizeof(sockaddr_in)
-		//);
-
-		//if (log == SOCKET_ERROR) {
-		//	//重复五次，然后发送RST，结束...
-		//}
-
-		////lock printing, in case other thread interrupts it
-		//log_lock.lock();
-		////logs printing
-		//cout << "Successfully sent datagram---" << send_header.get_data_length() + send_header.get_header_length() << "Bytes in length." << endl;
-		//cout << "Header---" << endl;
-		//cout << "seq: " << send_header.get_seq() << " , ack: " << send_header.get_ack() << ", flag: " << send_header.get_flag() << ", checksum: " << send_header.get_checksum() << endl;
-		//cout << "header length:" << send_header.get_header_length() << ", data length:" << send_header.get_data_length() << endl;
-		//log_lock.unlock();
-
-
-		//send_buffer.show();
-
-
-
 		log = sendto(
 			clientSocket,
 			(char*)datagram,
@@ -452,22 +410,7 @@ void rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 			//重复五次，然后发送RST，结束...
 		}
 
-		////lock printing, in case other thread interrupts it
-		//log_lock.lock();
-		////logs printing
-		//cout << "-----New Datagram-----" << endl;
-		//cout << "Successfully sent datagram---" << send_header.get_data_length() + send_header.get_header_length() << "Bytes in length." << endl;
-		//cout << "Header---" << endl;
-		//cout << "seq: " << send_header.get_seq() << " , ack: " << send_header.get_ack() << ", flag: " << send_header.get_flag() << ", checksum: " << send_header.get_checksum() << endl;
-		//cout << "header length:" << send_header.get_header_length() << ", data length:" << send_header.get_data_length() << endl;
-		//log_lock.unlock();
-
-		/*lock_guard<mutex> log_queue_lock(log_queue_mutex);
-		log_queue.push_back("-----New Datagram-----"+string("\n"));
-		log_queue.push_back("Successfully sent datagram---" + to_string(send_header.get_data_length() + send_header.get_header_length()) + "Bytes in length." + string("\n"));
-		log_queue.push_back("Header---" + string("\n"));
-		log_queue.push_back("seq: " + to_string(send_header.get_seq()) + " , ack: " + to_string(send_header.get_ack()) + ", flag: " + to_string(send_header.get_flag()) + ", checksum: " + to_string(send_header.get_checksum()) + string("\n"));
-		log_queue.push_back("header length:" + to_string(send_header.get_header_length()) + ", data length:" + to_string(send_header.get_data_length()) + string("\n"));*/
+		
 
 		{
 			lock_guard<mutex> lock(log_queue_mutex);
@@ -592,7 +535,7 @@ void wave_hand() {
 	// 生成随机数
 	int randomNumber = rand() % 100; //确保数字在0范围内
 
-	if (randomNumber <= Packet_loss_range) {
+	if (randomNumber < Packet_loss_range) {
 		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 	}
 	else {
@@ -763,7 +706,7 @@ int main() {
 
 			cout << "-----------Packet Loss-----------" << endl;
 			cout<<"Please input the loss of packet in transfer:"<<endl;
-			cout<<"Less than 0:No loss         Greater than 99:All loss" << endl;
+			cout<<"Less than 1:No loss         Greater than 99:All loss" << endl;
 			cout << "Packet loss rate:";
 			cin >> Packet_loss_range;
 
@@ -782,7 +725,22 @@ int main() {
 					break;
 				}
 			}
-	
+			
+			//Input Latency in mill seconds
+			while (true) {
+				cout << "-----------Latency Test Absolute-----------" << endl;
+				cout << "Please input the latency of time in transfer(ms):" << endl;
+				cout << "0:No Latency       3000:3000ms(3s)" << endl;
+				cout << "Latency mill seconds[0-3000]:";
+				cin >> Latency_mill_seconds;
+				if (Latency_mill_seconds < 0 || Latency_mill_seconds > 3000) {
+					cout << "Latency mill seconds out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
 
 
 			int new_buffer_size;

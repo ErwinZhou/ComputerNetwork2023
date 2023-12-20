@@ -26,9 +26,9 @@ using namespace std;
 // Maximum times of retries while waving hands
 #define UDP_WAVE_RETRIES 10
 // MSL estimation 
-#define MSL CLOCKS_PER_SEC/2
+#define MSL CLOCKS_PER_SEC/20
 // Patience waiting on sending file
-#define PATIENCE CLOCKS_PER_SEC 
+#define PATIENCE CLOCKS_PER_SEC * 1000 
 
 
 //Timer
@@ -42,7 +42,7 @@ private:
 public:
 	Timer() {
 		started = false;
-		timeout = 2 * MSL;//before udp_2msl is set, use default 2 seconds
+		timeout = 1.2 * 2 * MSL;//before udp_2msl is set, use default 2 seconds
 	}
 
 	Timer(int timeout) {
@@ -286,11 +286,12 @@ DWORD WINAPI log_thread_main(LPVOID lpParam);//log thread in resolving the compe
 DWORD WINAPI timeout_resend_thread_main(LPVOID lpParam);//timeout resend thread
 
 
-//Packet loss test(Absolute)[0-99]
+//Packet loss test(Absolute)[0-99] On Packet
 int Packet_loss_range;
-//Latency(Relatively)[0-1]
+//Latency(Relatively)[0-1] On Everything(ACK from server, data from client)
 double Latency_param;
-
+//Latency test(Absolute)[0-3000:ms] On Packet
+int Latency_mill_seconds;
 /*
   file_data_buffer{
 

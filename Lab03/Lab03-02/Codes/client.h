@@ -26,7 +26,7 @@ using namespace std;
 // Maximum times of retries while waving hands
 #define UDP_WAVE_RETRIES 10
 // MSL estimation 
-#define MSL CLOCKS_PER_SEC/10
+#define MSL CLOCKS_PER_SEC/20
 // Patience waiting on sending file
 #define PATIENCE CLOCKS_PER_SEC * 1000 
 
@@ -113,14 +113,10 @@ public:
 		buffer_lock.unlock();
 	}
 	void back_edge_slide() {
-		//lock it first
-		//if (slide_window.empty())
-		//	return;
 		buffer_lock.lock();
 		slide_window.pop_front();//dqueue front go out
 		send_base++;
 		buffer_lock.unlock();
-		//send_base = new_base;
 	}
 	void front_edge_slide(Datagram* datagram) {
 		//lock it first
@@ -128,7 +124,6 @@ public:
 		slide_window.push_back(datagram);//put in the queue end
 		next_seq_num++;
 		buffer_lock.unlock();
-		//next_seq_num++;
 	}
 	deque<Datagram*>& get_slide_window() {
 		return slide_window;
@@ -141,28 +136,6 @@ public:
 		this->next_seq_num = next_seq_num;
 		buffer_lock.unlock();
 	}
-	void show() {
-		/*buffer_lock.lock();
-		cout << "send_buffer:{";
-		for (auto it = slide_window.begin(); it != slide_window.end(); it++) {
-			cout << "[" << (*it)->header.get_seq() << "]" << " ";
-		}
-		for(int i=next_seq_num;i<=send_base+SEND_BUFFER_SIZE-1;i++)
-			cout << "[ ]" << " ";
-		cout << "}" << endl;
-		buffer_lock.unlock();*/
-
-		/*lock_guard<mutex> lock(log_queue_mutex);
-		log_queue.push_back("send_buffer:{");
-		for (auto it = slide_window.begin(); it != slide_window.end(); it++) {
-			log_queue.push_back("[" + to_string((*it)->header.get_seq()) + "]" + " ");
-		}
-		for (int i = next_seq_num; i <= send_base + SEND_BUFFER_SIZE - 1; i++)
-			log_queue.push_back("[ ]" + string(" "));
-		log_queue.push_back("}" + string("\n"));*/
-
-	}
-
 };
 
 
@@ -180,7 +153,7 @@ private:
 public:
 	Timer() {
 		started = false;
-		timeout = 2 * MSL;//before udp_2msl is set, use default 2 seconds
+		timeout = 1.2 * 2 * MSL;//before udp_2msl is set, use default 2 seconds
 	}
 
 	Timer(int timeout) {
@@ -285,10 +258,12 @@ void wave_hand();
 DWORD WINAPI recv_thread_main(LPVOID lpParameter);//Multi-thread
 DWORD WINAPI log_thread_main(LPVOID lpParam);//log thread in resolving the competition of console output
 
-//Packet loss test(Absolute)[0-99]
+//Packet loss test(Absolute)[0-99] On Packet
 int Packet_loss_range;
-//Latency(Relatively)[0-1]
+//Latency(Relatively)[0-1] On Everything(ACK from server, data from client)
 double Latency_param;
+//Latency test(Absolute)[0-3000:ms] On Packet
+int Latency_mill_seconds;
 
 /*
   file_data_buffer{

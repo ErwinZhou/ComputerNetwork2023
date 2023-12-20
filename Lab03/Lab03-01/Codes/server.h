@@ -86,6 +86,11 @@ int sequence_num = 0;
 char* file_data_buffer = new char[INT_MAX];//Maxium databuffer
 int file_length = 0;
 
+//Packet loss test(1-100) On ACK
+int Packet_loss_range;
+//Latency test(Absolute)[0-3000:ms] On ACK
+int Latency_mill_seconds;
+
 
 u_short checksum(char* data, int length);
 int shake_hand();

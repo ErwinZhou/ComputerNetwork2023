@@ -246,5 +246,7 @@ mutex ack_deque_mutex;
 
 
 
-//Packet loss test(1-100)
+//Packet loss test(1-100) On ACK
 int Packet_loss_range;
+//Latency test(Absolute)[0-3000:ms] On ACK
+int Latency_mill_seconds;

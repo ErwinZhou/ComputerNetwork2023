@@ -24,7 +24,7 @@ using namespace std;
 // Maximum times of retries while waving hands
 #define UDP_WAVE_RETRIES 10
 // MSL estimation 
-#define MSL CLOCKS_PER_SEC
+#define MSL CLOCKS_PER_SEC/20
 // Maxium sequence on package
 # define MAX_SEQ 256
 // Patience waiting on sending file
@@ -68,6 +68,9 @@ public:
 #pragma pack(pop)
 //Resume 4Byte align
 
+
+
+
 WSAData wsadata;
 SOCKET clientSocket;
 sockaddr_in clientAddr;
@@ -88,6 +91,13 @@ int sequence_num = 0;
 char* file_data_buffer = new char[INT_MAX];//Maxium databuffer
 int file_length = 0;
 bool restart = true;//keep-alive
+
+//Packet loss test(Absolute)[0-99] On Packet
+int Packet_loss_range;
+//Latency(Relatively)[0-1] On Everything(ACK from server, data from client)
+double Latency_param;
+//Latency test(Absolute)[0-3000:ms] On Packet
+int Latency_mill_seconds;
 
 
 u_short checksum(char* data, int length);

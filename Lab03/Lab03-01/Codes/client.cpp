@@ -166,15 +166,27 @@ bool rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 	u_short cks = checksum(send_buff, pkg_length+sizeof(send_header));
 	((Header*)send_buff)->checksum = cks;
 	
+
+	/*
+	* Latency test for Packet(Absolute)
+	*/
+	if (Latency_mill_seconds) {
+		//{
+		//	lock_guard<mutex> log_queue_lock(log_queue_mutex);
+		//	log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+		//}
+		Sleep(Latency_mill_seconds);
+	}
+
 	/*
 	* 测试丢包
 	*/
 
 
 	// 生成随机数
-	int randomNumber = rand() % 10; // %100 确保数字在 0-99 范围内
+	int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
 
-	if (randomNumber ==3) {
+	if (randomNumber < Packet_loss_range) {
 		cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 	}
 	else {
@@ -217,23 +229,40 @@ bool rdt_send(char* data_buff, int pkg_length, bool last_pkg) {
 			&temp_addr_length
 		) <= 0) {
 			if (clock() - start > 1.2 * udp_2msl) {//Timeout without receving ACK
-				log = sendto(
-					clientSocket,
-					send_buff,
-					pkg_length + sizeof(send_header),//total length
-					0,//no flags
-					(sockaddr*)&serverAddr,
-					sizeof(sockaddr_in)
-				);
-				if (log == SOCKET_ERROR) {
-					//重复五次，然后发送RST，结束
+
+				int random = rand() % 100;
+				if (random < Packet_loss_range) {
+					cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 				}
-				cout << "Timeout, resent datagram to server." << endl;
+				else {
+					log = sendto(
+						clientSocket,
+						send_buff,
+						pkg_length + sizeof(send_header),//total length
+						0,//no flags
+						(sockaddr*)&serverAddr,
+						sizeof(sockaddr_in)
+					);
+					if (log == SOCKET_ERROR) {
+						//重复五次，然后发送RST，结束
+					}
+					cout << "Timeout, resent datagram to server." << endl;
+				}
 				start = clock();//restarting clock
 			}
 		}
 		
-		//Receive ACK from server
+		//Indeed Receive ACK from server
+
+		/*
+		* Relative Latency Test
+		*/
+		int random_number = rand() % 100;
+		if (random_number < Packet_loss_range) {
+			cout << "------------DELAY TIME RELATIVE!-----------" << endl;
+			udp_2msl = udp_2msl * Latency_param;
+		
+		}
 		memcpy(&recv_header, recv_buff, sizeof(recv_header));//only header is useful
 		//logs printing
 		cout << "Successfully receive datagram---" << recv_header.get_data_length() + recv_header.get_header_length() << "Bytes in length." << endl;
@@ -418,7 +447,7 @@ void wave_hand() {
 				}
 				max_retries_times--;
 				//increase udp_2msl by one second
-				udp_2msl += MSL;
+				//udp_2msl += MSL;
 				start = clock();
 				cout << "Timeout, resent FIN pkg to server." << endl;
 				cout << "Sequence Number:" << random_seq << ", expects acknowledge number:" << random_seq + 1 << "." << endl;
@@ -515,11 +544,52 @@ int main() {
 		while (true) {
 			if (restart == false)
 				break;
+
+
+			cout << "-----------Packet Loss-----------" << endl;
+			cout << "Please input the loss of packet in transfer:" << endl;
+			cout << "Less than 1:No loss         Greater than 99:All loss" << endl;
+			cout << "Packet loss rate:";
+			cin >> Packet_loss_range;
+
+
+			while (true) {
+				cout << "-----------Latency Test Relative-----------" << endl;
+				cout << "Please input the latency of time in transfer:" << endl;
+				cout << "Slight Greater than 0:Severe Latency         1:No Latency" << endl;
+				cout << "Latency parameter(0-1]:";
+				cin >> Latency_param;
+				if (Latency_param <= 0 || Latency_param > 1) {
+					cout << "Latency paramter out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
+
+			//Input Latency in mill seconds
+			while (true) {
+				cout << "-----------Latency Test Absolute-----------" << endl;
+				cout << "Please input the latency of time in transfer(ms):" << endl;
+				cout << "0:No Latency       3000:3000ms(3s)" << endl;
+				cout << "Latency mill seconds[0-3000]:";
+				cin >> Latency_mill_seconds;
+				if (Latency_mill_seconds < 0 || Latency_mill_seconds > 3000) {
+					cout << "Latency mill seconds out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
+
+
 			cout << "-----------Input File-----------" << endl;
 			string input_path;
 			while (true) {
 				cout << "Please input a file path:" << endl;
-				cout << "(An absolute path, or a path relative to D:\\Visual Studio 2022 Code\\Project-Computer Network\\Lab3-1-UDP RDT Server)" << endl;
+				cout << "(An absolute path, or a path relative to D:\\Visual Studio 2022 Code\\Project-Computer Network\\Lab03-01-UDP RDT client)" << endl;
 				cin >> input_path;
 				ifstream file(input_path.c_str());
 				if (!file.is_open()) {

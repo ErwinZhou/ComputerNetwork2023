@@ -71,7 +71,7 @@ int shake_hand() {
 			// 生成随机数
 			int randomNumber = rand() % 100; //确保数字在0-1范围内
 
-			if (randomNumber <= Packet_loss_range) {
+			if (randomNumber < Packet_loss_range) {
 				cout << "------------DROP PACKAGE ON PURPOSE!-----------" << endl;
 			}
 			else {
@@ -270,19 +270,17 @@ DWORD WINAPI send_thread_main(LPVOID lpParamter) {
 	int log;
 	send_buff = new char[sizeof(Header)];
 	while (true) {
-		//If rdt_recv(Main Thread) received a LAS pkg, receive_over is changed
-		//cout << "Server的send线程我还活着！" << endl;
-		if (receive_over == true) {
-			//Send Thread finished
-			delete[] send_buff;
-			return 0;
-		}
 		{
 			lock_guard<mutex> ack_lock(ack_deque_mutex);
 			if (ack_deque.empty() == false)
 				ack_seq_num = ack_deque.front();
 			else {
-				//cout << "我在这！" << endl;
+				//If rdt_recv(Main Thread) received a LAS pkg, receive_over is changed
+				if (receive_over == true) {
+					//Send Thread finished
+					delete[] send_buff;
+					return 0;
+				}
 				continue;
 			}
 			ack_deque.pop_front();
@@ -294,17 +292,30 @@ DWORD WINAPI send_thread_main(LPVOID lpParamter) {
 			u_short cks = checksum(send_buff, sizeof(ack_header));
 			((Header*)send_buff)->checksum = cks;
 			/*
-			* 测试丢包
+			* Packet loss test
 			*/
 
-			// 生成随机数
-			int randomNumber = rand() % 100; // %100 确保数字在 0-99 范围内
+			// Generate random number
+			int randomNumber = rand() % 100; // %100 Make sure the number is in the range of 0-99
 
-			if (randomNumber <= Packet_loss_range) {
+			if (randomNumber < Packet_loss_range) {
 				lock_guard<mutex> log_lock(log_queue_mutex);
 				log_queue.push_back("------------DROP PACKAGE ON PURPOSE!-----------" + string("\n"));
 			}
 			else {
+
+
+				/*
+				* Latency test for Packet(Absolute)
+				*/
+				if (Latency_mill_seconds) {
+					/*{
+						lock_guard<mutex> log_queue_lock(log_queue_mutex);
+						log_queue.push_back("------------DELAY TIME ABSOLUTE!-----------" + string("\n"));
+					}*/
+					Sleep(Latency_mill_seconds);
+				}
+
 
 				int times = 5;
 			SendACK:
@@ -556,6 +567,10 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 							WaitForSingleObject(log_handle, INFINITE);
 							CloseHandle(send_handle);
 							CloseHandle(log_handle);
+
+
+
+
 							start = clock();
 							//getout the while(true) to output file(Keep-Alive), just return 
 							mode = 0;//阻塞模式
@@ -621,10 +636,6 @@ void rdt_rcv(char* data_buff, int* curr_pos, bool& waved) {
 					for (int i = receive_buffer.get_receive_base(); i <= receive_buffer.get_receive_end(); i++) {
 						if(receive_buffer.get_slide_window().empty()==true)
 							goto ShowLabel2;
-						//if (receive_buffer.get_slide_window()[index]->get_header().get_seq() == i) {
-						//	log_queue.push_back("[" + to_string(i) + "*" + "]" + " ");
-						//	index++;
-						//}
 						else {
 							ShowLabel2:
 							log_queue.push_back("[" + to_string(i) + +"]" + " ");
@@ -707,9 +718,25 @@ int main() {
 
 			cout << "-----------Packet Loss-----------" << endl;
 			cout << "Please input the loss of packet in transfer:" << endl;
-			cout << "Less than 0:No loss         Greater than 99:All loss" << endl;
+			cout << "Less than 1:No loss         Greater than 99:All loss" << endl;
 			cout << "Packet loss rate:";
 			cin >> Packet_loss_range;
+
+			//Input Latency for ack
+			while (true) {
+				cout << "-----------Latency Test-----------" << endl;
+				cout << "Please input the latency of time in transfer(ms):" << endl;
+				cout << "0:No Latency       3000:3000ms(3s)" << endl;
+				cout << "Latency mill seconds[0-3000]:";
+				cin >> Latency_mill_seconds;
+				if (Latency_mill_seconds < 0 || Latency_mill_seconds > 3000) {
+					cout << "Latency mill seconds out of range, please input again." << endl;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
 
 			//Input receive buffer size
 			int new_buffer_size;
