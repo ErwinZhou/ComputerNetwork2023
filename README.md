@@ -14,6 +14,8 @@ Feel free to contact me on ErwinZhou@outlook.com
 
 #### 副教授：吴英
 
+![image-20240102193902351](img/image-20240102193902351.png)
+
 在苦逼的内裤大，大三课程压力真的大......
 
 上传了一些自己的实验代码以及报告
